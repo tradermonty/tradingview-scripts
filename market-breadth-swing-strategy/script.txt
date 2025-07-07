@@ -1,0 +1,113 @@
+//@version=5
+strategy("Breadth-Driven Swing Strategy",
+         overlay           = false,
+         default_qty_type  = strategy.percent_of_equity,
+         default_qty_value = 100,      // invest entire equity
+         initial_capital   = 100000,
+         currency          = currency.USD,
+         commission_type   = strategy.commission.percent,
+         commission_value  = 0.02)     // 0.02% round-turn commission
+
+// ── Inputs ──────────────────────────────────────
+breadthSym      = input.symbol("INDEX:S5TH", "Breadth symbol")
+//tradeSym        = input.symbol("SPX",        "Trade symbol (e.g. SPX / SPY)")
+
+longLen         = input.int   (200, "Long EMA length",  minval = 100)
+shortLen        = input.int   (5,   "Short EMA length", minval = 1)
+
+pivotLen        = input.int   (20,  "Pivot width for 200‑EMA", minval = 1)
+pivotLenS       = input.int   (10,  "Pivot width for 5‑EMA",   minval = 1)
+
+promThresh      = input.float (0.5, "Prominence 200‑EMA (pct‑pts)", step = 0.1)
+promThreshS     = input.float (3.0, "Prominence 5‑EMA  (pct‑pts)", step = 0.1)
+
+longPeakLvl     = input.float(70, "200‑EMA peak level (%)")
+longTroughLvl   = input.float(40, "200‑EMA trough level (%)")
+shortTroughLvl  = input.float(20, "5‑EMA trough level (%)")
+
+useShortTroughEntries = input.bool(true, "Enter also on 5‑EMA trough")
+useStopLoss           = input.bool(true,  "Fixed stop (%)")
+stopPerc              = input.float(8.0,  "Stop width (%)", step = 0.1)
+
+// ── Series ──────────────────────────────────────
+breadth = request.security(breadthSym, timeframe.period, close)  // 0–100 (%)
+//tradePx = request.security(tradeSym,   timeframe.period, close)  // price of trade symbol
+
+ema200 = ta.ema(breadth, longLen)
+emaS   = ta.ema(breadth, shortLen)
+
+// ── 200‑EMA peak/trough detection ───────────────
+pivHi   = ta.pivothigh(ema200, pivotLen, pivotLen)
+pivLo   = ta.pivotlow (ema200, pivotLen, pivotLen)
+leftMin = ta.lowest   (ema200, pivotLen * 2 + 1)
+leftMax = ta.highest  (ema200, pivotLen * 2 + 1)
+
+promHiOk = not na(pivHi) and (pivHi - leftMin) >= promThresh
+promLoOk = not na(pivLo) and (leftMax - pivLo) >= promThresh
+levelLoOk = pivLo < longTroughLvl
+
+// consider a peak only if 200‑EMA value is ≥ longPeakLvl
+bool peak200   = promHiOk and not na(pivHi) and pivHi >= longPeakLvl
+bool trough200 = promLoOk and levelLoOk
+
+// ── 5-EMA trough ────────────────────────────────
+pivLoS   = ta.pivotlow(emaS, pivotLenS, pivotLenS)       // pivot candidate
+leftMaxS = ta.highest(emaS, pivotLenS * 2 + 1)           // highest in window
+promLoS  = not na(pivLoS) and (leftMaxS - pivLoS) >= promThreshS
+
+levelLoS = pivLoS < shortTroughLvl                       // existing check
+
+// NEW: lowest value over the last 20 bars
+min20S   = ta.lowest(breadth, 20)
+recentLowOk = min20S <= shortTroughLvl                   // new condition
+
+bool trough5 = promLoS and recentLowOk      // combine all
+
+// ── Entry & exit conditions ─────────────────────
+longEntry  = trough200 or (useShortTroughEntries and trough5)
+longExit   = peak200
+
+// ── Order execution ─────────────────────────────
+if longEntry
+    strategy.entry("Long", strategy.long, comment = "Long on breadth trough")
+
+if longExit and strategy.position_size > 0
+    strategy.close("Long", comment = "Exit on breadth peak")
+
+// ── Risk management ─────────────────────────────
+var float stopPrice = na
+var float trail     = na
+
+// fixed stop for long trades
+if strategy.position_size > 0 and useStopLoss
+    stopPrice := strategy.position_avg_price * (1 - stopPerc / 100)
+    strategy.exit("XL", from_entry = "Long",
+                  stop = stopPrice, comment = "Stop‑loss")
+
+// ── Plotting ─────────────────────────────────────
+plot(ema200, title = "Breadth 200‑EMA", color = color.orange, linewidth = 2)
+plot(emaS,   title = "Breadth 5‑EMA",   color = color.teal,   linewidth = 1)
+
+// ▼ 200‑EMA peak
+plotshape(peak200 ? pivHi : na,
+          title     = "200‑EMA peaks",
+          style     = shape.triangledown,
+          location  = location.absolute,
+          color     = color.red,
+          size      = size.small)
+
+// ▲ 200‑EMA trough
+plotshape(trough200 ? pivLo : na,
+          title     = "200‑EMA troughs",
+          style     = shape.triangleup,
+          location  = location.absolute,
+          color     = color.blue,
+          size      = size.small)
+
+// ▲ 5‑EMA trough (scale‑in signal)
+plotshape((trough5 and useShortTroughEntries) ? pivLoS : na,
+          title     = "5‑EMA troughs",
+          style     = shape.triangleup,
+          location  = location.absolute,
+          color     = color.green,
+          size      = size.small)

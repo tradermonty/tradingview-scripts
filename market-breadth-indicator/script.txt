@@ -1,0 +1,90 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Monty_trader
+
+//@version=6
+indicator("Market Breadth (S5TH) & SPX", overlay = false)
+
+// ── Inputs ───────────────────────────────────────────
+breadthSym     = input.symbol("INDEX:S5TH", "Breadth symbol")
+spxSym         = input.symbol("SPX",        "SPX symbol")
+longLen        = input.int(200, "Long EMA length",  minval = 100)
+shortLen       = input.int(5,   "Short EMA length", minval = 1)
+
+pivotLen       = input.int(15, "Pivot width (bars)",        minval = 1)   // for 200-EMA
+pivotLenS      = input.int(10, "Pivot width (Short EMA)",   minval = 1)   // for 8-EMA
+
+promThresh     = input.float(1.0, "Prominence threshold 200-EMA (%-points)", step = 0.1)
+promThreshS    = input.float(3.0, "Prominence threshold 5-EMA  (%-points)", step = 0.1)
+
+longTroughLvl  = input.float(50, "200-EMA trough level (%)")
+shortTroughLvl = input.float(30, "5-EMA trough level (%)")
+
+// ── Series ───────────────────────────────────────────
+breadth = request.security(breadthSym, timeframe.period, close)   // 0-100 %
+spxRaw  = request.security(spxSym,    timeframe.period, close)
+
+// ── Averages ─────────────────────────────────────────
+ema200 = ta.ema(breadth, longLen)
+emaS   = ta.ema(breadth, shortLen)
+
+// ── Trend detection (background shading) ─────────────
+var int trend = 0                    // 1 = up, -1 = down
+slope = ema200 - ema200[1]
+
+if  trend <= 0 and slope >  0.10     // upward turn (+0.10 %-pt)
+    trend := 1
+else if trend >= 0 and slope < -0.10 // downward turn (-0.10 %-pt)
+    trend := -1
+
+bgcolor(trend == -1 and emaS < ema200 ? #FFA0AB55 : na)
+
+// ── 200-EMA peaks & troughs with prominence filter ───
+pivotHiVal = ta.pivothigh(ema200, pivotLen, pivotLen)
+pivotLoVal = ta.pivotlow (ema200, pivotLen, pivotLen)
+
+// Highest / lowest values within the detection window
+leftMin = ta.lowest (ema200, pivotLen * 2 + 1)
+leftMax = ta.highest(ema200, pivotLen * 2 + 1)
+
+// Prominence check
+promHiOk = not na(pivotHiVal) and (pivotHiVal - leftMin) >= promThresh
+promLoOk = not na(pivotLoVal) and (leftMax  - pivotLoVal) >= promThresh
+
+// Level filter for troughs
+levelOkL = pivotLoVal < longTroughLvl
+
+// ▼ 200-EMA peak (red)
+plotshape(promHiOk ? pivotHiVal : na,
+          style     = shape.triangledown,
+          location  = location.absolute,
+          color     = color.red,
+          size      = size.small,
+          title     = "200-EMA Peaks")
+
+// ▲ 200-EMA trough (blue if both conditions met)
+plotshape(promLoOk and levelOkL ? pivotLoVal : na,
+          style     = shape.triangleup,
+          location  = location.absolute,
+          color     = color.blue,
+          size      = size.small,
+          title     = "200-EMA Troughs")
+
+// ── 5-EMA troughs ─────────────────────
+pivotLoS  = ta.pivotlow(emaS, pivotLenS, pivotLenS)
+leftMaxS  = ta.highest(emaS, pivotLenS * 2 + 1)
+promLoSOk = not na(pivotLoS) and (leftMaxS - pivotLoS) >= promThreshS
+levelOkS  = pivotLoS < shortTroughLvl
+
+plotshape(promLoSOk and levelOkS ? pivotLoS : na,
+          style     = shape.triangleup,
+          location  = location.absolute,
+          color     = color.green,
+          size      = size.small,
+          title     = "8-EMA Troughs")
+
+// ── Plots ───────────────────────────────────────────
+plot(ema200, title = "200-EMA", color = color.orange, linewidth = 2)
+plot(emaS,   title = "8-EMA",   color = color.teal,   linewidth = 2)
+
+// Horizontal reference line at 50 %
+hline(50, "50 %", color = color.gray, linestyle = hline.style_dotted)
