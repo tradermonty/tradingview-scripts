@@ -1,6 +1,6 @@
 # Market Breadth Swing Strategy
 
-**🇯🇵 [日本語版はこちら](#ストラテジー概要日本語版)**
+**🇯🇵 [日本語版はこちら](#日本語版説明)**
 
 ![Breadth-Driven Swing Strategy](Breadth-Driven%20Swing%20Strategy.png)
 
@@ -83,7 +83,7 @@ Feel free to tighten or relax any of these thresholds to match your risk profile
 
 ---
 
-## ストラテジー概要（日本語版）
+## 日本語版説明
 
 本スクリプトは **S&P500 のマーケットブレッド（内部需給）** だけを手がかりに、指数をスイングトレードします。
 

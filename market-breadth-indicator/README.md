@@ -1,6 +1,6 @@
 # Market Breadth Indicator (S5TH)
 
-**🇯🇵 [日本語版はこちら](#日本語版解説)**
+**🇯🇵 [日本語版はこちら](#日本語版説明)**
 
 ![Market Breadth Peaks & Troughs Indicator](Market%20Breadth%20Peaks%20&%20Troughs%20Indicator.png)
 
@@ -78,7 +78,7 @@ Peaks (▼) and troughs (▲) are detected with prominence filters so you can qu
 
 ---
 
-## 日本語版解説
+## 日本語版説明
 
 Market Breadth (S5TH) は、S&P500 構成銘柄の「200 日 SMA を上回る銘柄比率」をベースに
 - 長期トレンド用 200 EMA

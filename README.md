@@ -1,6 +1,6 @@
 # TradingView Scripts Collection
 
-**🇯🇵 [日本語版はこちら](#🇯🇵-日本語版説明)**
+**🇯🇵 [日本語版はこちら](#日本語版説明)**
 
 A collection of advanced Pine Script trading strategies and indicators for TradingView, focusing on market breadth analysis and earnings-driven trading opportunities.
 
@@ -101,7 +101,7 @@ tradingview-scripts/
 
 ---
 
-## 🇯🇵 日本語版説明
+## 日本語版説明
 
 # TradingView スクリプトコレクション
 

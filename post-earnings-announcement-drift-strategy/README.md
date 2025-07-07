@@ -1,6 +1,6 @@
 # Post-Earnings Announcement Drift (PEAD) Strategy
 
-**🇯🇵 [日本語版はこちら](#概要日本語)**
+**🇯🇵 [日本語版はこちら](#日本語版説明)**
 
 ![PEAD Strategy](PEAD%20Strategy.png)
 
@@ -58,7 +58,7 @@ Live trading: enable `calc_on_every_tick=true` for first-tick entries.
 
 ---
 
-## 概要（日本語）
+## 日本語版説明
 
 本ストラテジーは決算後の **PEAD（Post-Earnings Announcement Drift）** を狙い、EPS サプライズがプラス かつ 寄付きギャップアップ が発生した銘柄をスイングで買い持ちします。
 
